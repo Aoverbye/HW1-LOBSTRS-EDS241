@@ -1,7 +1,7 @@
 ---
 title: "Assignment 1: California Spiny Lobster Abundance (*Panulirus Interruptus*)"
 subtitle: "Assessing the Impact of Marine Protected Areas (MPAs) at 5 Reef Sites in Santa Barbara County"
-author: "EDS 241"
+author: "Amanda Overbye"
 date: "1/8/2024 (Due 1/22)"
 output: 
     html_document:
@@ -14,7 +14,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(eval=FALSE, warning = FALSE, message = FALSE )
+knitr::opts_chunk$set(eval=TRUE, warning = FALSE, message = FALSE )
 ```
 
 ------------------------------------------------------------------------
@@ -43,8 +43,7 @@ knitr::opts_chunk$set(eval=FALSE, warning = FALSE, message = FALSE )
     research colleagues or feel confident sharing publicly. Refer to the
     rubric for details about presentation standards.
 
-**Assignment submission (YOUR NAME):**
-\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
+**Assignment submission (YOUR NAME):** Amanda Overbye
 
 ------------------------------------------------------------------------
 
