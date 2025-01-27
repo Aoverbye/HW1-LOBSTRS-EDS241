@@ -400,7 +400,8 @@ rubric for details about presentation standards.</p></li>
 <p><strong>Assignment submission (YOUR NAME):</strong>
 ______________________________________</p>
 <hr />
-<pre class="r"><code>library(tidyverse)
+<pre class="r"><code>library(DHARMa)
+library(tidyverse)
 library(here)
 library(janitor)
 library(estimatr)  
@@ -409,7 +410,9 @@ library(jtools)
 library(gt)
 library(gtsummary)
 library(MASS) ## NOTE: The `select()` function is masked. Use: `dplyr::select()` ##
-library(interactions) </code></pre>
+library(interactions) 
+library(ggridges)
+library(ggbeeswarm)</code></pre>
 <hr />
 <div id="data-source" class="section level4">
 <h4>DATA SOURCE:</h4>
@@ -450,6 +453,12 @@ Carpenteria, and Mohawk) provide a strong counterfactual for our
 treatment sites (Naples, Isla Vista)? Write a paragraph making a case
 for why this comparison is centris paribus or whether selection bias is
 likely (be specific!).</p>
+<p>In ecology, control sites can never be an exact match to those in the
+treatment group. However, these five reefs are all within the same area
+of California coast lines and have habitat and species similarities.
+Therefore, the control sites provide a strong counterfactual for the
+treatment sites. There is probably going to be less selection bias and
+they are adequately centris paribus.</p>
 <hr />
 <p>Step 2: Read &amp; wrangle data</p>
 <p><strong>a.</strong> Read in the raw data. Name the data.frame
@@ -458,14 +467,21 @@ likely (be specific!).</p>
 the <code>janitor</code> package</p>
 <pre class="r"><code># HINT: check for coding of missing values (`na = &quot;-99999&quot;`)
 
-rawdata &lt;- </code></pre>
+rawdata &lt;- read_csv(here(&quot;data&quot;, &quot;spiny_abundance_sb_18.csv&quot;), na = &quot;-99999&quot;)</code></pre>
+<pre class="r"><code># Clean column names for consistency
+df &lt;- rawdata %&gt;%
+  clean_names()</code></pre>
 <p><strong>c.</strong> Create a new <code>df</code> named
 <code>tidyata</code>. Using the variable <code>site</code> (reef
 location) create a new variable <code>reef</code> as a
 <code>factor</code> and add the following labels in the order listed
 (i.e., re-order the <code>levels</code>):</p>
 <pre><code>&quot;Arroyo Quemado&quot;, &quot;Carpenteria&quot;, &quot;Mohawk&quot;, &quot;Isla Vista&quot;,  &quot;Naples&quot;</code></pre>
-<pre class="r"><code>tidydata &lt;- </code></pre>
+<pre class="r"><code>tidydata &lt;- df %&gt;% 
+    mutate(reef = factor(site, 
+                         levels = c(&quot;AQUE&quot;, &quot;CARP&quot;, &quot;MOHK&quot;, &quot;IVEE&quot;, &quot;NAPL&quot;), 
+                         labels = c(&quot;Arroyo Quemado&quot;, &quot;Carpenteria&quot;, &quot;Mohawk&quot;, 
+                                    &quot;Isla Vista&quot;,  &quot;Naples&quot;)))</code></pre>
 <p>Create new <code>df</code> named <code>spiny_counts</code></p>
 <p><strong>d.</strong> Create a new variable <code>counts</code> to
 allow for an analysis of lobster counts where the unit-level of
@@ -486,7 +502,14 @@ are coded <code>1</code> and non_MPA sites are coded <code>0</code></p>
 
 #HINT(e): Use `case_when()` to create the 3 new variable columns
 
-spiny_counts &lt;- </code></pre>
+spiny_counts &lt;- tidydata %&gt;% 
+    group_by(site, year, transect) %&gt;% 
+    summarise(count = sum(count, na.rm = TRUE), mean_size = mean(size_mm, na.rm = TRUE)) |&gt;
+    mutate(mpa = case_when(site %in% c(&quot;IVEE&quot;, &quot;NAPL&quot;) ~ &quot;MPA&quot;,
+                           .default = &quot;non_MPA&quot;)) %&gt;% 
+    mutate(treat = case_when(mpa == &quot;MPA&quot; ~ 1,
+                             .default = 0)) %&gt;% 
+    ungroup()</code></pre>
 <blockquote>
 <p>NOTE: This step is crucial to the analysis. Check with a friend or
 come to TA/instructor office hours to make sure the counts are coded
@@ -532,10 +555,67 @@ plot</a></li>
 <pre class="r"><code># plot 1: ....
 
 spiny_counts %&gt;% 
-ggplot()</code></pre>
+    ggplot(aes(x = site, y = count, color = site)) +
+    geom_jitter(alpha = 0.6, size = 2, width = 0.2, height = 0) +
+    stat_summary(fun = &quot;mean&quot;, geom = &quot;point&quot;, shape = 20, color = &quot;maroon4&quot;, size = 3) +
+    labs(
+        x = &quot;Reef Site&quot;,
+        y = &quot;Lobster Count&quot;,
+        title = &quot;Distribution of Lobster Counts by Reef Site&quot;
+    ) +
+    scale_color_brewer(palette = &quot;Dark2&quot;) +
+    theme_light()</code></pre>
+<pre class="r"><code># Plot 2
+spiny_counts %&gt;% 
+    ggplot(aes(x = mpa, y = count, fill = mpa)) +
+    geom_violin(trim = FALSE, alpha = 0.9) +  # Trim = FALSE to show full range
+    stat_summary(fun = &quot;median&quot;, geom = &quot;point&quot;, color = &quot;lightgray&quot;, size = 2) +  # Add median points
+    labs(
+        x = &quot;MPA Status&quot;,
+        y = &quot;Lobster Count&quot;,
+        title = &quot;Distribution of Lobster Counts by MPA Status&quot;
+    ) +
+    scale_fill_manual(values = c(&quot;MPA&quot; = &quot;navy&quot;, &quot;non_MPA&quot; = &quot;maroon4&quot;)) +
+    theme_light()</code></pre>
+<pre class="r"><code># Plot 3: Ridge plot of Lobster Counts by Year
+spiny_counts %&gt;% 
+    ggplot(aes(x = count, y = as.factor(year), fill = as.factor(year))) +
+    geom_density_ridges() +  # Adjust transparency with alpha
+    labs(
+        x = &quot;Lobster Counts&quot;,
+        y = &quot;Year&quot;,
+        title = &quot;Distribution of Lobster Counts Grouped by Year&quot;
+    ) +
+    scale_fill_brewer(palette = &quot;Dark2&quot;) +  
+    theme_light() +
+    theme(legend.title = element_blank())  # Remove legend title for clarity</code></pre>
+<pre class="r"><code># Plotting lobster size using a beeswarm
+spiny_counts %&gt;%
+    ggplot(aes(x = as.factor(year), y = mean_size, color = as.factor(year))) +  # Year on x-axis, mean_size on y-axis
+    geom_beeswarm(cex = 1.5, alpha = 0.7) +  # Adjust cex for point size and alpha for transparency
+    labs(
+        x = &quot;Year&quot;,
+        y = &quot;Lobster Size (mm)&quot;,
+        title = &quot;Distribution of Lobster Sizes&quot;,
+        subtitle = &quot;Lobster size distribution grouped by year&quot;
+    ) +
+    scale_color_brewer(palette = &quot;Dark2&quot;) +  # Color palette for each year
+    theme_light() +
+    theme(legend.position = &quot;none&quot;)  # Remove legend if not needed</code></pre>
 <p><strong>c.</strong> Compare means of the outcome by treatment group.
 Using the <code>tbl_summary()</code> function from the package <a href="https://www.danieldsjoberg.com/gtsummary/articles/tbl_summary.html"><code>gt_summary</code></a></p>
-<pre class="r"><code># USE: gt_summary::tbl_summary()</code></pre>
+<pre class="r"><code># USE: gt_summary::tbl_summary()
+# Create a summary table for lobster counts by treatment (MPA vs non-MPA)
+summary_table &lt;- spiny_counts %&gt;%
+  tbl_summary(
+    by = treat,   # Grouping by treatment (MPA vs non-MPA)
+    statistic = list(all_continuous() ~ &quot;{mean} ({sd})&quot;,  # Mean and standard deviation for continuous variables
+                     all_categorical() ~ &quot;{n} ({p}%)&quot;),  # Frequency for categorical variables
+    missing = &quot;no&quot;  # Exclude missing data from the table
+  )
+
+# Print the summary table
+summary_table</code></pre>
 <hr />
 <p>Step 4: OLS regression- building intuition</p>
 <p><strong>a.</strong> Start with a simple OLS estimator of lobster
@@ -547,8 +627,8 @@ coefficients <em>in your own words</em>. Use full sentences and write
 your interpretation of the regression results to be as clear as possible
 to a non-academic audience.</p>
 <pre class="r"><code># NOTE: We will not evaluate/interpret model fit in this assignment (e.g., R-square)
-
-m1_ols &lt;- 
+# Fit a simple OLS regression model
+m1_ols &lt;-  lm(count ~ treat, data = spiny_counts)
 
 summ(m1_ols, model.fit = FALSE) </code></pre>
 <p><strong>c.</strong> Check the model assumptions using the
@@ -560,6 +640,14 @@ Why are we getting this result?</p>
 <pre class="r"><code>check_model(m1_ols, check = &quot;normality&quot;)</code></pre>
 <pre class="r"><code>check_model(m1_ols, check = &quot;homogeneity&quot;)</code></pre>
 <pre class="r"><code>check_model(m1_ols, check = &quot;pp_check&quot;)</code></pre>
+<p>The results of the four graphs show that the distribution does not
+adhear to a normal distribution curve. Because of the inconsistencies of
+the graphs, it may be prudent to try a different kind of model. In the
+OLS regression table, the siteCARP and siteNAPL show that the p-values
+are greater than .05, which means that the results are not significant.
+The siteIVEE and siteMOHK have p-values less the .o5, which means that
+the results are significant. Like I said previously, this implies that
+this may not be the best model for understanding the data.</p>
 <hr />
 <p>Step 5: Fitting GLMs</p>
 <p><strong>a.</strong> Estimate a Poisson regression model using the
@@ -575,7 +663,7 @@ change in the significance of the treatment effect</p>
 
 #HINT2: For the second glm() argument `family` use the following specification option `family = poisson(link = &quot;log&quot;)`
 
-m2_pois &lt;- </code></pre>
+m2_pois &lt;- glm(count ~ treat, data = spiny_counts, family = poisson(link = &quot;log&quot;))</code></pre>
 <p><strong>e.</strong> Check the model assumptions. Explain results.</p>
 <p><strong>f.</strong> Conduct tests for over-dispersion &amp;
 zero-inflation. Explain results.</p>
@@ -591,7 +679,7 @@ this GLM model.</p>
 own words. Compare with results from the previous model.</p>
 <pre class="r"><code># NOTE: The `glm.nb()` function does not require a `family` argument
 
-m3_nb &lt;- </code></pre>
+m3_nb &lt;- glm.nb(count ~ treat, data = spiny_counts)</code></pre>
 <pre class="r"><code>check_overdispersion(m3_nb)</code></pre>
 <pre class="r"><code>check_zeroinflation(m3_nb)</code></pre>
 <pre class="r"><code>check_predictions(m3_nb)</code></pre>
@@ -604,13 +692,19 @@ you fit side-by-side.</p>
 <p><strong>c.</strong> Write a short paragraph comparing the results. Is
 the treatment effect <code>robust</code> or stable across the model
 specifications.</p>
-<pre class="r"><code>export_summs(# ADD MODELS
-             model.names = c(&quot;OLS&quot;,&quot;Poisson&quot;, &quot;NB&quot;),
-             statistics = &quot;none&quot;)</code></pre>
+<pre class="r"><code># Compare OLS, Poisson, and Negative Binomial models
+export_summs(
+    list(m1_ols, m2_pois, m3_nb),
+    model.names = c(&quot;OLS&quot;, &quot;Poisson&quot;, &quot;NB&quot;),
+    statistics = &quot;none&quot; # Suppress additional stats for simplicity
+    )</code></pre>
 <hr />
 <p>Step 7: Building intuition - fixed effects</p>
 <p><strong>a.</strong> Create new <code>df</code> with the
 <code>year</code> variable converted to a factor</p>
+<pre class="r"><code># Convert `year` to a factor
+spiny_counts_fixed &lt;- spiny_counts %&gt;% 
+  mutate(year = as.factor(year))</code></pre>
 <p><strong>b.</strong> Run the following OLS model using
 <code>lm()</code></p>
 <ul>
@@ -631,7 +725,7 @@ negative? *Does this result make sense?</p>
     mutate(year=as_factor(year))
     
 m5_fixedeffs &lt;- lm(
-    log(counts+1) ~ treat*year,
+    log(count+1) ~ treat*year,
     data = ff_counts)
 
 summ(m5_fixedeffs, model.fit = FALSE)</code></pre>
@@ -656,9 +750,25 @@ variable</p>
 <pre class="r"><code># Hint 1: Group counts by `year` and `mpa` and calculate the `mean_count`
 # Hint 2: Convert variable `year` to a factor
 
-plot_counts &lt;- 
+# Convert `year` to a factor and calculate the mean lobster counts by year and MPA status
+plot_counts &lt;- spiny_counts %&gt;%
+  mutate(year = as.factor(year)) %&gt;%
+  group_by(year, mpa) %&gt;%
+  summarise(mean_count = mean(count, na.rm = TRUE))
 
-# plot_counts %&gt;% ggplot() ...</code></pre>
+plot_counts %&gt;% 
+ggplot(aes(x = year, y = mean_count, color = mpa, group = mpa)) +
+  geom_line() +  # Line plot to show trends over years
+  geom_point() +  # Add points at each year for clarity
+  labs(
+    x = &quot;Year&quot;,
+    y = &quot;Mean Lobster Count&quot;,
+    title = &quot;Mean Lobster Counts by Year and MPA Status&quot;,
+    subtitle = &quot;Changes in lobster counts across years for MPA vs non-MPA reefs&quot;
+  ) +
+  scale_color_manual(values = c(&quot;MPA&quot; = &quot;navy&quot;, &quot;non_MPA&quot; = &quot;maroon4&quot;)) +
+  theme_light() +
+  theme(legend.title = element_blank())</code></pre>
 <hr />
 <p>Step 8: Reconsider causal identification assumptions</p>
 <ol style="list-style-type: lower-alpha">

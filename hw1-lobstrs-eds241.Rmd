@@ -7,6 +7,10 @@ output:
     html_document:
       theme: flatly
     pdf_document: default
+editor_options: 
+  chunk_output_type: inline
+  markdown: 
+    wrap: 72
 ---
 
 ```{r setup, include=FALSE}
@@ -21,21 +25,28 @@ knitr::opts_chunk$set(eval=FALSE, warning = FALSE, message = FALSE )
 
 ### Assignment instructions:
 
--  Working with partners to troubleshoot code and concepts is encouraged! If you work with a partner, please list their name next to yours at the top of your assignment so Annie and I can easily see who collaborated. 
+-   Working with partners to troubleshoot code and concepts is
+    encouraged! If you work with a partner, please list their name next
+    to yours at the top of your assignment so Annie and I can easily see
+    who collaborated.
 
--  All written responses must be written independently (**in your own words**). 
+-   All written responses must be written independently (**in your own
+    words**).
 
--  Please follow the question prompts carefully and include only the information each question asks in your submitted responses.
+-   Please follow the question prompts carefully and include only the
+    information each question asks in your submitted responses.
 
--  Submit both your knitted document and the associated `RMarkdown` or `Quarto` file. 
+-   Submit both your knitted document and the associated `RMarkdown` or
+    `Quarto` file.
 
--  Your knitted presentation should meet the quality you'd submit to research colleagues or feel confident sharing publicly. Refer to the rubric for details about presentation standards.
+-   Your knitted presentation should meet the quality you'd submit to
+    research colleagues or feel confident sharing publicly. Refer to the
+    rubric for details about presentation standards.
 
+**Assignment submission (YOUR NAME):**
+\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
 
-**Assignment submission (YOUR NAME):** ______________________________________
-
-
-----------------------------------------------------------------------
+------------------------------------------------------------------------
 
 ```{r}
 library(DHARMa)
@@ -58,28 +69,55 @@ library(ggbeeswarm)
 
 #### DATA SOURCE:
 
-Reed D. 2019. SBC LTER: Reef: Abundance, size and fishing effort for California Spiny Lobster (Panulirus interruptus), ongoing since 2012. Environmental Data Initiative. https://doi.org/10.6073/pasta/a593a675d644fdefb736750b291579a0. Dataset accessed 11/17/2019.
+Reed D. 2019. SBC LTER: Reef: Abundance, size and fishing effort for
+California Spiny Lobster (Panulirus interruptus), ongoing since 2012.
+Environmental Data Initiative.
+<https://doi.org/10.6073/pasta/a593a675d644fdefb736750b291579a0>.
+Dataset accessed 11/17/2019.
 
 ------------------------------------------------------------------------
 
 ### **Introduction**
 
-You're about to dive into some deep data collected from five reef sites in Santa Barbara County, all about the abundance of California spiny lobsters! 🦞 Data was gathered by divers annually from 2012 to 2018 across Naples, Mohawk, Isla Vista, Carpinteria, and Arroyo Quemado reefs.
+You're about to dive into some deep data collected from five reef sites
+in Santa Barbara County, all about the abundance of California spiny
+lobsters! 🦞 Data was gathered by divers annually from 2012 to 2018
+across Naples, Mohawk, Isla Vista, Carpinteria, and Arroyo Quemado
+reefs.
 
-Why lobsters? Well, this sample provides an opportunity to evaluate the impact of Marine Protected Areas (MPAs) established on January 1, 2012 (Reed, 2019). Of these five reefs, Naples, and Isla Vista are MPAs, while the other three are not protected (non-MPAs). Comparing lobster health between these protected and non-protected areas gives us the chance to study how commercial and recreational fishing might impact these ecosystems.
+Why lobsters? Well, this sample provides an opportunity to evaluate the
+impact of Marine Protected Areas (MPAs) established on January 1, 2012
+(Reed, 2019). Of these five reefs, Naples, and Isla Vista are MPAs,
+while the other three are not protected (non-MPAs). Comparing lobster
+health between these protected and non-protected areas gives us the
+chance to study how commercial and recreational fishing might impact
+these ecosystems.
 
-We will consider the MPA sites the `treatment` group and use regression methods to explore whether protecting these reefs really makes a difference compared to non-MPA sites (our control group). In this assignment, we’ll think deeply about which causal inference assumptions hold up under the research design and identify where they fall short. 
+We will consider the MPA sites the `treatment` group and use regression
+methods to explore whether protecting these reefs really makes a
+difference compared to non-MPA sites (our control group). In this
+assignment, we’ll think deeply about which causal inference assumptions
+hold up under the research design and identify where they fall short.
 
 Let’s break it down step by step and see what the data reveals! 📊
 
 ![](figures/map-5reefs.png)
 
-
 ------------------------------------------------------------------------
 
 Step 1: Anticipating potential sources of selection bias
 
-**a.** Do the control sites (Arroyo Quemado, Carpenteria, and Mohawk) provide a strong counterfactual for our treatment sites (Naples, Isla Vista)? Write a paragraph making a case for why this comparison is centris paribus or whether selection bias is likely (be specific!).  
+**a.** Do the control sites (Arroyo Quemado, Carpenteria, and Mohawk)
+provide a strong counterfactual for our treatment sites (Naples, Isla
+Vista)? Write a paragraph making a case for why this comparison is
+centris paribus or whether selection bias is likely (be specific!).
+
+In ecology, control sites can never be an exact match to those in the
+treatment group. However, these five reefs are all within the same area
+of California coast lines and have habitat and species similarities.
+Therefore, the control sites provide a strong counterfactual for the
+treatment sites. There is probably going to be less selection bias and
+they are adequately centris paribus.
 
 ------------------------------------------------------------------------
 
@@ -101,9 +139,13 @@ df <- rawdata %>%
   clean_names()
 ```
 
-**c.** Create a new `df` named `tidyata`. Using the variable `site` (reef location) create a new variable `reef` as a `factor` and add the following labels in the order listed (i.e., re-order the `levels`): 
-    
-    "Arroyo Quemado", "Carpenteria", "Mohawk", "Isla Vista",  "Naples"
+**c.** Create a new `df` named `tidyata`. Using the variable `site`
+(reef location) create a new variable `reef` as a `factor` and add the
+following labels in the order listed (i.e., re-order the `levels`):
+
+```         
+"Arroyo Quemado", "Carpenteria", "Mohawk", "Isla Vista",  "Naples"
+```
 
 ```{r}
 tidydata <- df %>% 
@@ -113,15 +155,20 @@ tidydata <- df %>%
                                     "Isla Vista",  "Naples")))
 ```
 
-Create new `df` named `spiny_counts` 
+Create new `df` named `spiny_counts`
 
-**d.** Create a new variable `counts` to allow for an analysis of lobster counts where the unit-level of observation is the total number of observed lobsters per `site`, `year` and `transect`. 
+**d.** Create a new variable `counts` to allow for an analysis of
+lobster counts where the unit-level of observation is the total number
+of observed lobsters per `site`, `year` and `transect`.
 
-- Create a variable `mean_size` from the variable `size_mm`
-- NOTE: The variable `counts` should have values which are integers (whole numbers). 
-- Make sure to account for missing cases (`na`)!
+-   Create a variable `mean_size` from the variable `size_mm`
+-   NOTE: The variable `counts` should have values which are integers
+    (whole numbers).
+-   Make sure to account for missing cases (`na`)!
 
-**e.** Create a new variable `mpa` with levels `MPA` and `non_MPA`. For our regression analysis create a numerical variable `treat` where MPA sites are coded `1` and non_MPA sites are coded `0`
+**e.** Create a new variable `mpa` with levels `MPA` and `non_MPA`. For
+our regression analysis create a numerical variable `treat` where MPA
+sites are coded `1` and non_MPA sites are coded `0`
 
 ```{r}
 #HINT(d): Use `group_by()` & `summarize()` to provide the total number of lobsters observed at each site-year-transect row-observation. 
@@ -139,32 +186,43 @@ spiny_counts <- tidydata %>%
 
 ```
 
-> NOTE: This step is crucial to the analysis. Check with a friend or come to TA/instructor office hours to make sure the counts are coded correctly!
+> NOTE: This step is crucial to the analysis. Check with a friend or
+> come to TA/instructor office hours to make sure the counts are coded
+> correctly!
 
 ------------------------------------------------------------------------
 
 Step 3: Explore & visualize data
 
-**a.** Take a look at the data! Get familiar with the data in each `df` format (`tidydata`, `spiny_counts`)
+**a.** Take a look at the data! Get familiar with the data in each `df`
+format (`tidydata`, `spiny_counts`)
 
-**b.** We will focus on the variables `count`, `year`, `site`, and `treat`(`mpa`) to model lobster abundance. Create the following 4 plots using a different method each time from the 6 options provided. Add a layer (`geom`) to each of the plots including informative descriptive statistics (you choose; e.g., mean, median, SD, quartiles, range). Make sure each plot dimension is clearly labeled (e.g., axes, groups).
+**b.** We will focus on the variables `count`, `year`, `site`, and
+`treat`(`mpa`) to model lobster abundance. Create the following 4 plots
+using a different method each time from the 6 options provided. Add a
+layer (`geom`) to each of the plots including informative descriptive
+statistics (you choose; e.g., mean, median, SD, quartiles, range). Make
+sure each plot dimension is clearly labeled (e.g., axes, groups).
 
-- [Density plot](https://r-charts.com/distribution/density-plot-group-ggplot2)
-- [Ridge plot](https://r-charts.com/distribution/ggridges/)
-- [Jitter plot](https://ggplot2.tidyverse.org/reference/geom_jitter.html) 
-- [Violin plot](https://r-charts.com/distribution/violin-plot-group-ggplot2) 
-- [Histogram](https://r-charts.com/distribution/histogram-density-ggplot2/) 
-- [Beeswarm](https://r-charts.com/distribution/beeswarm/)
+-   [Density
+    plot](https://r-charts.com/distribution/density-plot-group-ggplot2)
+-   [Ridge plot](https://r-charts.com/distribution/ggridges/)
+-   [Jitter
+    plot](https://ggplot2.tidyverse.org/reference/geom_jitter.html)
+-   [Violin
+    plot](https://r-charts.com/distribution/violin-plot-group-ggplot2)
+-   [Histogram](https://r-charts.com/distribution/histogram-density-ggplot2/)
+-   [Beeswarm](https://r-charts.com/distribution/beeswarm/)
 
 Create plots displaying the distribution of lobster **counts**:
 
-1) grouped by reef site  
-2) grouped by MPA status
-3) grouped by year
+1)  grouped by reef site\
+2)  grouped by MPA status
+3)  grouped by year
 
 Create a plot of lobster **size** :
 
-4) You choose the grouping variable(s)!
+4)  You choose the grouping variable(s)!
 
 ```{r}
 # plot 1: ....
@@ -182,6 +240,7 @@ spiny_counts %>%
     theme_light()
     
 ```
+
 ```{r}
 # Plot 2
 spiny_counts %>% 
@@ -196,6 +255,7 @@ spiny_counts %>%
     scale_fill_manual(values = c("MPA" = "navy", "non_MPA" = "maroon4")) +
     theme_light()
 ```
+
 ```{r}
 # Plot 3: Ridge plot of Lobster Counts by Year
 spiny_counts %>% 
@@ -210,6 +270,7 @@ spiny_counts %>%
     theme_light() +
     theme(legend.title = element_blank())  # Remove legend title for clarity
 ```
+
 ```{r}
 # Plotting lobster size using a beeswarm
 spiny_counts %>%
@@ -226,8 +287,9 @@ spiny_counts %>%
     theme(legend.position = "none")  # Remove legend if not needed
 ```
 
-
-**c.** Compare means of the outcome by treatment group. Using the `tbl_summary()` function from the package [`gt_summary`](https://www.danieldsjoberg.com/gtsummary/articles/tbl_summary.html) 
+**c.** Compare means of the outcome by treatment group. Using the
+`tbl_summary()` function from the package
+[`gt_summary`](https://www.danieldsjoberg.com/gtsummary/articles/tbl_summary.html)
 
 ```{r}
 # USE: gt_summary::tbl_summary()
@@ -248,9 +310,15 @@ summary_table
 
 Step 4: OLS regression- building intuition
 
-**a.** Start with a simple OLS estimator of lobster counts regressed on treatment. Use the function `summ()` from the [`jtools`](https://jtools.jacob-long.com/) package to print the OLS output
+**a.** Start with a simple OLS estimator of lobster counts regressed on
+treatment. Use the function `summ()` from the
+[`jtools`](https://jtools.jacob-long.com/) package to print the OLS
+output
 
-**b.** Interpret the intercept & predictor coefficients *in your own words*. Use full sentences and write your interpretation of the regression results to be as clear as possible to a non-academic audience.
+**b.** Interpret the intercept & predictor coefficients *in your own
+words*. Use full sentences and write your interpretation of the
+regression results to be as clear as possible to a non-academic
+audience.
 
 ```{r}
 # NOTE: We will not evaluate/interpret model fit in this assignment (e.g., R-square)
@@ -261,28 +329,36 @@ summ(m1_ols, model.fit = FALSE)
 
 ```
 
-**c.** Check the model assumptions using the `check_model` function from the `performance` package
+**c.** Check the model assumptions using the `check_model` function from
+the `performance` package
 
-**d.** Explain the results of the 4 diagnostic plots. Why are we getting this result?
+**d.** Explain the results of the 4 diagnostic plots. Why are we getting
+this result?
 
 ```{r}
 check_model(m1_ols,  check = "qq" )
 ```
 
-
 ```{r}
 check_model(m1_ols, check = "normality")
 ```
-
 
 ```{r}
 check_model(m1_ols, check = "homogeneity")
 ```
 
-
 ```{r}
 check_model(m1_ols, check = "pp_check")
 ```
+
+The results of the four graphs show that the distribution does not
+adhear to a normal distribution curve. Because of the inconsistencies of
+the graphs, it may be prudent to try a different kind of model. In the
+OLS regression table, the siteCARP and siteNAPL show that the p-values
+are greater than .05, which means that the results are not significant.
+The siteIVEE and siteMOHK have p-values less the .o5, which means that
+the results are significant. Like I said previously, this implies that
+this may not be the best model for understanding the data.
 
 ------------------------------------------------------------------------
 
@@ -290,11 +366,29 @@ Step 5: Fitting GLMs
 
 **a.** Estimate a Poisson regression model using the `glm()` function
 
-**b.** Interpret the predictor coefficient in your own words. Use full sentences and write your interpretation of the results to be as clear as possible to a non-academic audience.
+**b.** Interpret the predictor coefficient in your own words. Use full
+sentences and write your interpretation of the results to be as clear as
+possible to a non-academic audience.
 
-**c.** Explain the statistical concept of dispersion and overdispersion in the context of this model. 
+```         
+We can see that the predictor coefficient is 0.21. This means that the change when in an MPA is 1.23, which means there is a 23% increase in lobsters in the MPAs.
+```
 
-**d.** Compare results with previous model, explain change in the significance of the treatment effect
+**c.** Explain the statistical concept of dispersion and overdispersion
+in the context of this model.
+
+```         
+Overdispersion happens when variance is greater than we expect it and greater than the mean. In the model we are using now, dispersion is generally higher than I would expect. This makes me suspicious, but maybe the lobsters are just really spread out. 
+```
+
+**d.** Compare results with previous model, explain change in the
+significance of the treatment effect
+
+Comparing the results with the previous model shows, the p-value for the
+treatment effect is less than .05, which means that the results are
+significant. This is different from the previous model, because in the
+previous model the results were insignificant. This implies that the
+Poisson regression is a better model for the data.
 
 ```{r}
 #HINT1: Incidence Ratio Rate (IRR): Exponentiation of beta returns coefficient which is interpreted as the 'percent change' for a one unit increase in the predictor 
@@ -303,11 +397,17 @@ Step 5: Fitting GLMs
 
 m2_pois <- glm(count ~ treat, data = spiny_counts, family = poisson(link = "log"))
 
+summ(m2_pois, model.fit = FALSE)
 ```
 
 **e.** Check the model assumptions. Explain results.
 
-**f.** Conduct tests for over-dispersion & zero-inflation. Explain results.
+I think the new model did better than the previous model considering the
+difference in the significance of results. This mode is probably not
+perfect, but atleast they are better than the one before
+
+**f.** Conduct tests for over-dispersion & zero-inflation. Explain
+results.
 
 ```{r}
 check_model(m2_pois)
@@ -321,11 +421,17 @@ check_overdispersion(m2_pois)
 check_zeroinflation(m2_pois)
 ```
 
-**g.** Fit a negative binomial model using the function glm.nb() from the package `MASS` and check model diagnostics 
+**g.** Fit a negative binomial model using the function glm.nb() from
+the package `MASS` and check model diagnostics
 
 **h.** In 1-2 sentences explain rationale for fitting this GLM model.
 
-**i.** Interpret the treatment estimate result in your own words. Compare with results from the previous model.
+It makes sense to fit a glm model because glm models are good for data
+that does not follow a normal distribution curve. As seen in the plots
+above, this is applicable for our data.
+
+**i.** Interpret the treatment estimate result in your own words.
+Compare with results from the previous model.
 
 ```{r}
 
@@ -335,14 +441,20 @@ m3_nb <- glm.nb(count ~ treat, data = spiny_counts)
 
 ```
 
-
 ```{r}
 check_overdispersion(m3_nb)
 ```
 
+The p-value is slightly over 0.05, so it may not be significant, but the
+dispersion is relatively close to 1, which means the data points are
+closer to the mean than they might otherwise have been.
+
 ```{r}
 check_zeroinflation(m3_nb)
 ```
+
+This model seemed to predict that there would be more zeros than there
+actually are, so the model is overpredicting 0s.
 
 ```{r}
 check_predictions(m3_nb)
@@ -352,14 +464,15 @@ check_predictions(m3_nb)
 check_model(m3_nb)
 ```
 
-
 ------------------------------------------------------------------------
 
-Step 6: Compare models 
+Step 6: Compare models
 
-**a.** Use the `export_summ()` function from the `jtools` package to look at the three regression models you fit side-by-side.
+**a.** Use the `export_summ()` function from the `jtools` package to
+look at the three regression models you fit side-by-side.
 
-**c.** Write a short paragraph comparing the results. Is the treatment effect `robust` or stable across the model specifications. 
+**c.** Write a short paragraph comparing the results. Is the treatment
+effect `robust` or stable across the model specifications.
 
 ```{r}
 
@@ -372,11 +485,11 @@ export_summs(
 
 ```
 
-------------------------------------------------------------------------
+## The new model shows much more significant results, based on p-values, than the previous models. The significance implies that treatment is effective and MPAs are doing what we hoped they would do. We can also see that the 0.21 coefficient shows up again here, which implies model stability.
 
 Step 7: Building intuition - fixed effects
 
-**a.** Create  new `df` with the `year` variable converted to a factor
+**a.** Create new `df` with the `year` variable converted to a factor
 
 ```{r}
 # Convert `year` to a factor
@@ -384,17 +497,28 @@ spiny_counts_fixed <- spiny_counts %>%
   mutate(year = as.factor(year))
 ```
 
-
 **b.** Run the following OLS model using `lm()`
 
-- Use the following specification for the outcome `log(counts+1)`
-- Estimate fixed effects for `year`
-- Include an interaction term between variables `treat` and `year`
+-   Use the following specification for the outcome `log(counts+1)`
+-   Estimate fixed effects for `year`
+-   Include an interaction term between variables `treat` and `year`
 
-**c.** Take a look at the regression output. Each coefficient provides a comparison or the difference in means for a specific sub-group in the data. Informally, describe the what the model has estimated at a conceptual level (NOTE: you do not have to interpret coefficients individually)
+**c.** Take a look at the regression output. Each coefficient provides a
+comparison or the difference in means for a specific sub-group in the
+data. Informally, describe the what the model has estimated at a
+conceptual level (NOTE: you do not have to interpret coefficients
+individually)
 
-**d.** Explain why the main effect for treatment is negative? *Does this result make sense?
+**d.** Explain why the main effect for treatment is negative? \*Does
+this result make sense?
 
+While at first glance the results may seem counter intuitive, it does
+actually make sense because we are now considering the time aspect of
+the results. I do admit, this is confusing, but I suspect that the
+negative effect has to do with the timeline of lobster breeding and
+movement. It is not uncommon in ecology for re-population or population
+movement to take time, so I assume that is what the negative values
+mean.
 
 ```{r}
 ff_counts <- spiny_counts %>% 
@@ -407,9 +531,17 @@ m5_fixedeffs <- lm(
 summ(m5_fixedeffs, model.fit = FALSE)
 ```
 
-**e.** Look at the model predictions: Use the `interact_plot()` function from package `interactions` to plot mean predictions by year and treatment status. 
+**e.** Look at the model predictions: Use the `interact_plot()` function
+from package `interactions` to plot mean predictions by year and
+treatment status.
 
-**f.** Re-evaluate your responses (c) and (b) above. 
+**f.** Re-evaluate your responses (c) and (b) above.
+
+The results above seem to go along well with my theory of treatments
+taking time to show increases. This model prediction implies that the
+treatment effects change with time and seem to get more impactful as
+time goes on. This makes sense considering that species exist in a world
+with many variables and time constraints.
 
 ```{r}
 
@@ -421,13 +553,14 @@ interact_plot(m5_fixedeffs, pred = year, modx = treat,
 
 ```
 
-**g.** Using `ggplot()` create a plot in same style as the previous `interaction plot`, but displaying the original scale of the outcome variable (lobster counts). This type of plot is commonly used to show how the treatment effect changes across discrete time points (i.e., panel data).
+**g.** Using `ggplot()` create a plot in same style as the previous
+`interaction plot`, but displaying the original scale of the outcome
+variable (lobster counts). This type of plot is commonly used to show
+how the treatment effect changes across discrete time points (i.e.,
+panel data).
 
-The plot should have... 
-- `year` on the x-axis
-- `counts` on the y-axis
-- `mpa` as the grouping variable
-
+The plot should have... - `year` on the x-axis - `counts` on the
+y-axis - `mpa` as the grouping variable
 
 ```{r}
 # Hint 1: Group counts by `year` and `mpa` and calculate the `mean_count`
@@ -458,26 +591,53 @@ ggplot(aes(x = year, y = mean_count, color = mpa, group = mpa)) +
 
 Step 8: Reconsider causal identification assumptions
 
-a. Discuss whether you think `spillover effects` are likely in this research context (see Glossary of terms; https://docs.google.com/document/d/1RIudsVcYhWGpqC-Uftk9UTz3PIq6stVyEpT44EPNgpE/edit?usp=sharing)
-b. Explain why spillover is an issue for the identification of causal effects
-c. How does spillover relate to impact in this research setting?
-d. Discuss the following causal inference assumptions in the context of the MPA treatment effect estimator. Evaluate if each of the assumption are reasonable: 
-    
-    1) SUTVA: Stable Unit Treatment Value assumption 
-    2) Excludability assumption
+a.  Discuss whether you think `spillover effects` are likely in this
+    research context (see Glossary of terms;
+    <https://docs.google.com/document/d/1RIudsVcYhWGpqC-Uftk9UTz3PIq6stVyEpT44EPNgpE/edit?usp=sharing>)
+
+    Spill over seems likely, especially considering that lobsters have
+    legs and tend to use them. I imagine the lobsters transport
+    themselves to different areas and therefore cause spillover which
+    impacts our results.
+
+b.  Explain why spillover is an issue for the identification of causal
+    effects It is an issue because it can cause things that are not part
+    of the treatment group to seem like they are part of the treatment
+    group which messes up results.
+
+c.  How does spillover relate to impact in this research setting? Spill
+    over could cause skewed results and relate to this research setting
+    because lobsters are often mobile and research sites are within
+    travel distance for the lobsters
+
+d.  Discuss the following causal inference assumptions in the context of
+    the MPA treatment effect estimator. Evaluate if each of the
+    assumption are reasonable:
+
+    1)  SUTVA: Stable Unit Treatment Value assumption SUTVA assumes that
+        units are stable and are not prone to moving. This is not a
+        helpful assumption in our case because lobsters seem to like to
+        move around
+    2)  Excludability assumption This assumption assumption assumes that
+        only the treatment will impact the outcome. This is not helpful
+        in our case because the ocean has many different variables and
+        lobsters are mobile with their own ambitions and goals.
 
 ------------------------------------------------------------------------
 
 # EXTRA CREDIT
 
-> Use the recent lobster abundance data with observations collected up until 2024 (`lobster_sbchannel_24.csv`) to run an analysis evaluating the effect of MPA status on lobster counts using the same focal variables.
+> Use the recent
+> [lobster](<https://www.youtube.com/watch?v=40gNBZdpF0o>) abundance
+> data with observations collected up until 2024
+> (`lobster_sbchannel_24.csv`) to run an analysis evaluating the effect
+> of MPA status on lobster counts using the same focal variables.
 
-a. Create a new script for the analysis on the updated data
-b. Run at least 3 regression models & assess model diagnostics
-c. Compare and contrast results with the analysis from the 2012-2018 data sample (~ 2 paragraphs)
-
+a.  Create a new script for the analysis on the updated data
+b.  Run at least 3 regression models & assess model diagnostics
+c.  Compare and contrast results with the analysis from the 2012-2018
+    data sample (\~ 2 paragraphs)
 
 ------------------------------------------------------------------------
 
 ![](figures/spiny1.png)
-
