@@ -38,7 +38,7 @@ knitr::opts_chunk$set(eval=FALSE, warning = FALSE, message = FALSE )
 ----------------------------------------------------------------------
 
 ```{r}
-
+library(DHARMa)
 library(tidyverse)
 library(here)
 library(janitor)
@@ -49,6 +49,8 @@ library(gt)
 library(gtsummary)
 library(MASS) ## NOTE: The `select()` function is masked. Use: `dplyr::select()` ##
 library(interactions) 
+library(ggridges)
+library(ggbeeswarm)
 
 ```
 
@@ -90,8 +92,13 @@ Step 2: Read & wrangle data
 ```{r}
 # HINT: check for coding of missing values (`na = "-99999"`)
 
-rawdata <- 
+rawdata <- read_csv(here("data", "spiny_abundance_sb_18.csv"), na = "-99999")
+```
 
+```{r}
+# Clean column names for consistency
+df <- rawdata %>%
+  clean_names()
 ```
 
 **c.** Create a new `df` named `tidyata`. Using the variable `site` (reef location) create a new variable `reef` as a `factor` and add the following labels in the order listed (i.e., re-order the `levels`): 
@@ -99,9 +106,11 @@ rawdata <-
     "Arroyo Quemado", "Carpenteria", "Mohawk", "Isla Vista",  "Naples"
 
 ```{r}
-
-tidydata <- 
-    
+tidydata <- df %>% 
+    mutate(reef = factor(site, 
+                         levels = c("AQUE", "CARP", "MOHK", "IVEE", "NAPL"), 
+                         labels = c("Arroyo Quemado", "Carpenteria", "Mohawk", 
+                                    "Isla Vista",  "Naples")))
 ```
 
 Create new `df` named `spiny_counts` 
@@ -119,7 +128,14 @@ Create new `df` named `spiny_counts`
 
 #HINT(e): Use `case_when()` to create the 3 new variable columns
 
-spiny_counts <- 
+spiny_counts <- tidydata %>% 
+    group_by(site, year, transect) %>% 
+    summarise(count = sum(count, na.rm = TRUE), mean_size = mean(size_mm, na.rm = TRUE)) |>
+    mutate(mpa = case_when(site %in% c("IVEE", "NAPL") ~ "MPA",
+                           .default = "non_MPA")) %>% 
+    mutate(treat = case_when(mpa == "MPA" ~ 1,
+                             .default = 0)) %>% 
+    ungroup()
 
 ```
 
@@ -154,14 +170,78 @@ Create a plot of lobster **size** :
 # plot 1: ....
 
 spiny_counts %>% 
-ggplot()
+    ggplot(aes(x = site, y = count, color = site)) +
+    geom_jitter(alpha = 0.6, size = 2, width = 0.2, height = 0) +
+    stat_summary(fun = "mean", geom = "point", shape = 20, color = "maroon4", size = 3) +
+    labs(
+        x = "Reef Site",
+        y = "Lobster Count",
+        title = "Distribution of Lobster Counts by Reef Site"
+    ) +
+    scale_color_brewer(palette = "Dark2") +
+    theme_light()
     
 ```
+```{r}
+# Plot 2
+spiny_counts %>% 
+    ggplot(aes(x = mpa, y = count, fill = mpa)) +
+    geom_violin(trim = FALSE, alpha = 0.9) +  # Trim = FALSE to show full range
+    stat_summary(fun = "median", geom = "point", color = "lightgray", size = 2) +  # Add median points
+    labs(
+        x = "MPA Status",
+        y = "Lobster Count",
+        title = "Distribution of Lobster Counts by MPA Status"
+    ) +
+    scale_fill_manual(values = c("MPA" = "navy", "non_MPA" = "maroon4")) +
+    theme_light()
+```
+```{r}
+# Plot 3: Ridge plot of Lobster Counts by Year
+spiny_counts %>% 
+    ggplot(aes(x = count, y = as.factor(year), fill = as.factor(year))) +
+    geom_density_ridges() +  # Adjust transparency with alpha
+    labs(
+        x = "Lobster Counts",
+        y = "Year",
+        title = "Distribution of Lobster Counts Grouped by Year"
+    ) +
+    scale_fill_brewer(palette = "Dark2") +  
+    theme_light() +
+    theme(legend.title = element_blank())  # Remove legend title for clarity
+```
+```{r}
+# Plotting lobster size using a beeswarm
+spiny_counts %>%
+    ggplot(aes(x = as.factor(year), y = mean_size, color = as.factor(year))) +  # Year on x-axis, mean_size on y-axis
+    geom_beeswarm(cex = 1.5, alpha = 0.7) +  # Adjust cex for point size and alpha for transparency
+    labs(
+        x = "Year",
+        y = "Lobster Size (mm)",
+        title = "Distribution of Lobster Sizes",
+        subtitle = "Lobster size distribution grouped by year"
+    ) +
+    scale_color_brewer(palette = "Dark2") +  # Color palette for each year
+    theme_light() +
+    theme(legend.position = "none")  # Remove legend if not needed
+```
+
 
 **c.** Compare means of the outcome by treatment group. Using the `tbl_summary()` function from the package [`gt_summary`](https://www.danieldsjoberg.com/gtsummary/articles/tbl_summary.html) 
 
 ```{r}
 # USE: gt_summary::tbl_summary()
+# Create a summary table for lobster counts by treatment (MPA vs non-MPA)
+summary_table <- spiny_counts %>%
+  tbl_summary(
+    by = treat,   # Grouping by treatment (MPA vs non-MPA)
+    statistic = list(all_continuous() ~ "{mean} ({sd})",  # Mean and standard deviation for continuous variables
+                     all_categorical() ~ "{n} ({p}%)"),  # Frequency for categorical variables
+    missing = "no"  # Exclude missing data from the table
+  )
+
+# Print the summary table
+summary_table
 ```
 
 ------------------------------------------------------------------------
@@ -174,8 +254,8 @@ Step 4: OLS regression- building intuition
 
 ```{r}
 # NOTE: We will not evaluate/interpret model fit in this assignment (e.g., R-square)
-
-m1_ols <- 
+# Fit a simple OLS regression model
+m1_ols <-  lm(count ~ treat, data = spiny_counts)
 
 summ(m1_ols, model.fit = FALSE) 
 
@@ -221,7 +301,7 @@ Step 5: Fitting GLMs
 
 #HINT2: For the second glm() argument `family` use the following specification option `family = poisson(link = "log")`
 
-m2_pois <- 
+m2_pois <- glm(count ~ treat, data = spiny_counts, family = poisson(link = "log"))
 
 ```
 
@@ -251,7 +331,7 @@ check_zeroinflation(m2_pois)
 
 # NOTE: The `glm.nb()` function does not require a `family` argument
 
-m3_nb <- 
+m3_nb <- glm.nb(count ~ treat, data = spiny_counts)
 
 ```
 
@@ -283,9 +363,12 @@ Step 6: Compare models
 
 ```{r}
 
-export_summs(# ADD MODELS
-             model.names = c("OLS","Poisson", "NB"),
-             statistics = "none")
+# Compare OLS, Poisson, and Negative Binomial models
+export_summs(
+    list(m1_ols, m2_pois, m3_nb),
+    model.names = c("OLS", "Poisson", "NB"),
+    statistics = "none" # Suppress additional stats for simplicity
+    )
 
 ```
 
@@ -294,6 +377,13 @@ export_summs(# ADD MODELS
 Step 7: Building intuition - fixed effects
 
 **a.** Create  new `df` with the `year` variable converted to a factor
+
+```{r}
+# Convert `year` to a factor
+spiny_counts_fixed <- spiny_counts %>% 
+  mutate(year = as.factor(year))
+```
+
 
 **b.** Run the following OLS model using `lm()`
 
@@ -307,12 +397,11 @@ Step 7: Building intuition - fixed effects
 
 
 ```{r}
-
 ff_counts <- spiny_counts %>% 
     mutate(year=as_factor(year))
     
 m5_fixedeffs <- lm(
-    log(counts+1) ~ treat*year,
+    log(count+1) ~ treat*year,
     data = ff_counts)
 
 summ(m5_fixedeffs, model.fit = FALSE)
@@ -344,9 +433,25 @@ The plot should have...
 # Hint 1: Group counts by `year` and `mpa` and calculate the `mean_count`
 # Hint 2: Convert variable `year` to a factor
 
-plot_counts <- 
+# Convert `year` to a factor and calculate the mean lobster counts by year and MPA status
+plot_counts <- spiny_counts %>%
+  mutate(year = as.factor(year)) %>%
+  group_by(year, mpa) %>%
+  summarise(mean_count = mean(count, na.rm = TRUE))
 
-# plot_counts %>% ggplot() ...
+plot_counts %>% 
+ggplot(aes(x = year, y = mean_count, color = mpa, group = mpa)) +
+  geom_line() +  # Line plot to show trends over years
+  geom_point() +  # Add points at each year for clarity
+  labs(
+    x = "Year",
+    y = "Mean Lobster Count",
+    title = "Mean Lobster Counts by Year and MPA Status",
+    subtitle = "Changes in lobster counts across years for MPA vs non-MPA reefs"
+  ) +
+  scale_color_manual(values = c("MPA" = "navy", "non_MPA" = "maroon4")) +
+  theme_light() +
+  theme(legend.title = element_blank())
 ```
 
 ------------------------------------------------------------------------
